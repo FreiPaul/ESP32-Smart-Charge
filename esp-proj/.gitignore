@@ -1,0 +1,12 @@
+# Build
+build/
+sdkconfig
+sdkconfig.old
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Debug
+*.log
