@@ -1,24 +1,34 @@
 import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import '../models/charger_settings.dart';
 
-/// BLE Service for communicating with ESP32-C6 LED Controller
+/// BLE Service for communicating with ESP32-C6 Smart Charger
 class BleService {
   // UUIDs matching ESP32 firmware
-  static const String ledServiceUuid = "12345678-1234-5678-1234-56789abcdef0";
-  static const String ledCharUuid = "12345678-1234-5678-1234-56789abcdef1";
+  static const String serviceUuid = "12345678-1234-5678-1234-56789abcdef0";
+  static const String settingsCharUuid = "12345678-1234-5678-1234-56789abcdef2";
+  static const String statusCharUuid = "12345678-1234-5678-1234-56789abcdef3";
+  static const String commandCharUuid = "12345678-1234-5678-1234-56789abcdef4";
 
   BluetoothDevice? _connectedDevice;
-  BluetoothCharacteristic? _ledCharacteristic;
+  BluetoothCharacteristic? _settingsCharacteristic;
+  BluetoothCharacteristic? _statusCharacteristic;
+  BluetoothCharacteristic? _commandCharacteristic;
   StreamSubscription<BluetoothConnectionState>? _connectionSubscription;
+  StreamSubscription<List<int>>? _statusSubscription;
 
   final _connectionStateController = StreamController<bool>.broadcast();
   final _scanResultsController = StreamController<List<ScanResult>>.broadcast();
+  final _statusController = StreamController<ChargerStatus>.broadcast();
 
   /// Stream of connection state changes
   Stream<bool> get connectionState => _connectionStateController.stream;
 
-  /// Stream of scan results (filtered for ESP-LED devices)
+  /// Stream of scan results (filtered for ESP-CHARGER devices)
   Stream<List<ScanResult>> get scanResults => _scanResultsController.stream;
+
+  /// Stream of status updates from device
+  Stream<ChargerStatus> get statusStream => _statusController.stream;
 
   /// Whether currently connected to a device
   bool get isConnected => _connectedDevice != null;
@@ -26,10 +36,11 @@ class BleService {
   /// Name of connected device
   String? get connectedDeviceName => _connectedDevice?.platformName;
 
-  /// Start scanning for ESP-LED devices
+  /// Start scanning for ESP-CHARGER devices
   Future<void> startScan({Duration timeout = const Duration(seconds: 10)}) async {
-    // Check if Bluetooth is on
-    final adapterState = await FlutterBluePlus.adapterState.first;
+    // Check if Bluetooth is on (skip unknown state on first access)
+    final adapterState = await FlutterBluePlus.adapterState
+        .firstWhere((state) => state != BluetoothAdapterState.unknown);
     if (adapterState != BluetoothAdapterState.on) {
       throw Exception('Bluetooth is not enabled. Please enable Bluetooth in Settings.');
     }
@@ -40,12 +51,13 @@ class BleService {
     // Listen to scan results
     FlutterBluePlus.onScanResults.listen((results) {
       // Filter for devices that either:
-      // 1. Have "ESP-LED" in their name
-      // 2. Advertise our LED service UUID
+      // 1. Have "ESP-CHARGER" or "ESP-LED" in their name
+      // 2. Advertise our service UUID
       final filtered = results.where((r) {
-        final hasMatchingName = r.device.platformName.contains('ESP-LED');
+        final name = r.device.platformName;
+        final hasMatchingName = name.contains('ESP-CHARGER') || name.contains('ESP-LED');
         final hasMatchingService = r.advertisementData.serviceUuids.any(
-          (uuid) => uuid.toString().toLowerCase() == ledServiceUuid.toLowerCase(),
+          (uuid) => uuid.toString().toLowerCase() == serviceUuid.toLowerCase(),
         );
         return hasMatchingName || hasMatchingService;
       }).toList();
@@ -55,7 +67,7 @@ class BleService {
 
     // Start scanning with service filter
     await FlutterBluePlus.startScan(
-      withServices: [Guid(ledServiceUuid)],
+      withServices: [Guid(serviceUuid)],
       timeout: timeout,
     );
   }
@@ -85,27 +97,56 @@ class BleService {
       // Discover services
       final services = await device.discoverServices();
 
-      // Find our LED service and characteristic
+      // Find our service and characteristics
       for (var service in services) {
-        if (service.uuid.toString().toLowerCase() == ledServiceUuid.toLowerCase()) {
+        if (service.uuid.toString().toLowerCase() == serviceUuid.toLowerCase()) {
           for (var char in service.characteristics) {
-            if (char.uuid.toString().toLowerCase() == ledCharUuid.toLowerCase()) {
-              _ledCharacteristic = char;
-              break;
+            final charUuid = char.uuid.toString().toLowerCase();
+            if (charUuid == settingsCharUuid.toLowerCase()) {
+              _settingsCharacteristic = char;
+            } else if (charUuid == statusCharUuid.toLowerCase()) {
+              _statusCharacteristic = char;
+            } else if (charUuid == commandCharUuid.toLowerCase()) {
+              _commandCharacteristic = char;
             }
           }
         }
       }
 
-      if (_ledCharacteristic == null) {
+      // Verify we found at least the settings characteristic
+      if (_settingsCharacteristic == null) {
         await device.disconnect();
-        throw Exception('LED characteristic not found on device');
+        throw Exception('Settings characteristic not found on device');
+      }
+
+      // Subscribe to status notifications if available
+      if (_statusCharacteristic != null) {
+        await _subscribeToStatus();
       }
 
       _connectionStateController.add(true);
     } catch (e) {
       _handleDisconnect();
       rethrow;
+    }
+  }
+
+  /// Subscribe to status notifications
+  Future<void> _subscribeToStatus() async {
+    if (_statusCharacteristic == null) return;
+
+    try {
+      await _statusCharacteristic!.setNotifyValue(true);
+      _statusSubscription = _statusCharacteristic!.onValueReceived.listen((data) {
+        try {
+          final status = ChargerStatus.fromBytes(data);
+          _statusController.add(status);
+        } catch (e) {
+          // Ignore parse errors
+        }
+      });
+    } catch (e) {
+      // Notifications might not be supported
     }
   }
 
@@ -116,46 +157,60 @@ class BleService {
   }
 
   void _handleDisconnect() {
+    _statusSubscription?.cancel();
+    _statusSubscription = null;
     _connectionSubscription?.cancel();
     _connectionSubscription = null;
     _connectedDevice = null;
-    _ledCharacteristic = null;
+    _settingsCharacteristic = null;
+    _statusCharacteristic = null;
+    _commandCharacteristic = null;
     _connectionStateController.add(false);
   }
 
-  /// Read current LED state
-  /// Returns true if LED is ON, false if OFF
-  Future<bool> readLedState() async {
-    if (_ledCharacteristic == null) {
+  /// Upload settings to the ESP
+  Future<void> uploadSettings(ChargerSettings settings) async {
+    if (_settingsCharacteristic == null) {
       throw Exception('Not connected to device');
     }
 
-    final value = await _ledCharacteristic!.read();
-    return value.isNotEmpty && value[0] != 0;
+    await _settingsCharacteristic!.write(settings.toBytes().toList());
   }
 
-  /// Write LED state
-  /// [on] - true to turn LED on, false to turn off
-  Future<void> writeLedState(bool on) async {
-    if (_ledCharacteristic == null) {
-      throw Exception('Not connected to device');
+  /// Read current status from the ESP
+  Future<ChargerStatus> readStatus() async {
+    if (_statusCharacteristic == null) {
+      throw Exception('Status characteristic not available');
     }
 
-    await _ledCharacteristic!.write([on ? 0x01 : 0x00]);
+    final data = await _statusCharacteristic!.read();
+    return ChargerStatus.fromBytes(data);
   }
 
-  /// Toggle LED and return new state
-  Future<bool> toggleLed() async {
-    final currentState = await readLedState();
-    final newState = !currentState;
-    await writeLedState(newState);
-    return newState;
+  /// Send a command to the ESP
+  Future<void> sendCommand(ChargerCommand command) async {
+    if (_commandCharacteristic == null) {
+      throw Exception('Command characteristic not available');
+    }
+
+    await _commandCharacteristic!.write(command.toBytes());
   }
+
+  /// Force start charging
+  Future<void> forceStart() => sendCommand(ChargerCommand.forceStart);
+
+  /// Force stop charging
+  Future<void> forceStop() => sendCommand(ChargerCommand.forceStop);
+
+  /// Clear any scheduled charging
+  Future<void> clearSchedule() => sendCommand(ChargerCommand.clearSchedule);
 
   /// Dispose resources
   void dispose() {
+    _statusSubscription?.cancel();
     _connectionSubscription?.cancel();
     _connectionStateController.close();
     _scanResultsController.close();
+    _statusController.close();
   }
 }
