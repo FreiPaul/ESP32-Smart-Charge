@@ -21,7 +21,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Local settings state
   TimeOfDay? _scheduledTime;
   bool _voltageThresholdEnabled = false;
-  double _voltageThreshold = 14.4;
+  double _voltageThreshold = 40.5;
 
   // UI state
   bool _isLoading = false;
@@ -117,7 +117,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   DateTime _calculateDateTime(TimeOfDay time) {
     final now = DateTime.now();
-    var scheduled = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    var scheduled = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
     // If the time has already passed today, schedule for tomorrow
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
@@ -239,7 +245,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade100,
                     borderRadius: BorderRadius.circular(16),
@@ -359,8 +368,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Expanded(
                     child: Slider(
                       value: _voltageThreshold,
-                      min: 10.0,
-                      max: 16.0,
+                      min: 36.0,
+                      max: 42.0,
                       divisions: 60,
                       label: '${_voltageThreshold.toStringAsFixed(1)} V',
                       onChanged: (value) {
