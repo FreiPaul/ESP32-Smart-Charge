@@ -13,7 +13,8 @@
 #include <stdint.h>
 
 // Hardware configuration
-#define RELAY_GPIO 2
+#define RELAY_GPIO 15
+#define INVERT_RELAY_LOGIC 1  // Set to 1 if relay logic is inverted
 #define VOLTAGE_ADC_GPIO 0
 
 // Voltage divider ratio: actual_voltage = adc_voltage * VOLTAGE_DIVIDER_RATIO
@@ -22,7 +23,7 @@
 #define VOLTAGE_DIVIDER_RATIO 5.0f
 
 // ADC configuration
-#define ADC_ATTEN ADC_ATTEN_DB_12   // 0-3.3V range
+#define ADC_ATTEN ADC_ATTEN_DB_12  // 0-3.3V range
 #define ADC_WIDTH ADC_BITWIDTH_12  // 12-bit resolution (0-4095)
 
 /**

@@ -28,7 +28,8 @@ void hardware_init(void) {
         .intr_type = GPIO_INTR_DISABLE,
     };
     gpio_config(&relay_conf);
-    gpio_set_level(RELAY_GPIO, 0);  // Start with relay OFF
+    gpio_set_level(RELAY_GPIO,
+                   INVERT_RELAY_LOGIC ? 1 : 0);  // Start with relay OFF
     relay_state = false;
     ESP_LOGI(TAG, "Relay initialized on GPIO %d", RELAY_GPIO);
 
@@ -58,13 +59,14 @@ void hardware_init(void) {
 
 void relay_set(bool on) {
     relay_state = on;
+    if (INVERT_RELAY_LOGIC) {
+        on = !on;
+    }
     gpio_set_level(RELAY_GPIO, on ? 1 : 0);
     ESP_LOGI(TAG, "Relay %s", on ? "ON" : "OFF");
 }
 
-bool relay_get_state(void) {
-    return relay_state;
-}
+bool relay_get_state(void) { return relay_state; }
 
 uint16_t voltage_read_mv(void) {
     if (adc_handle == NULL) {
