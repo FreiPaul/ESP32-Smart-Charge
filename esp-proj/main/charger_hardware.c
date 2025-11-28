@@ -74,18 +74,30 @@ uint16_t voltage_read_mv(void) {
         return 0;
     }
 
-    int raw_value = 0;
-    esp_err_t ret = adc_oneshot_read(adc_handle, ADC_CHANNEL_0, &raw_value);
-    if (ret != ESP_OK) {
-        ESP_LOGW(TAG, "ADC read failed: %s", esp_err_to_name(ret));
+    int32_t raw_sum = 0;
+    int valid_samples = 0;
+
+    for (int i = 0; i < 16; i++) {
+        int raw_value = 0;
+        esp_err_t ret = adc_oneshot_read(adc_handle, ADC_CHANNEL_0, &raw_value);
+        if (ret == ESP_OK) {
+            raw_sum += raw_value;
+            valid_samples++;
+        }
+    }
+
+    if (valid_samples == 0) {
+        ESP_LOGW(TAG, "ADC read failed: no valid samples");
         return 0;
     }
+
+    int raw_avg = raw_sum / valid_samples;
 
     // Convert raw ADC value to voltage
     // ADC reference voltage is ~3.3V with 12-bit resolution (0-4095)
     // adc_voltage_mv = (raw / 4095) * 3300
     // actual_voltage_mv = adc_voltage_mv * VOLTAGE_DIVIDER_RATIO
-    float adc_voltage_mv = (raw_value / 4095.0f) * 3300.0f;
+    float adc_voltage_mv = (raw_avg / 4095.0f) * 3300.0f;
     float actual_voltage_mv = adc_voltage_mv * VOLTAGE_DIVIDER_RATIO;
 
     return (uint16_t)actual_voltage_mv;
