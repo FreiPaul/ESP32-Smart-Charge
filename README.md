@@ -5,7 +5,7 @@ BLE-controlled charger with scheduled start time and optional automatic voltage-
 ## Hardware
 
 - **Board**: Seeed Studio XIAO ESP32-C6
-- **Relay**: GPIO 2 (charger on/off)
+- **Relay**: RELAY_GPIO (define in charger_hardware.h) (charger on/off)
 - **Voltage ADC**: GPIO 0 (with voltage divider)
 
 ## Features
@@ -50,10 +50,12 @@ flutter run --release
 
 ## Configuration
 
-Adjust voltage divider ratio in `esp-proj/main/charger_hardware.h`:
+Adjust hardware config according to your circuit in `esp-proj/main/charger_hardware.h`:
 
 ```c
 #define VOLTAGE_DIVIDER_RATIO 5.0f
+#define RELAY_GPIO 15
+#define INVERT_RELAY_LOGIC 1  // Set to 1 if relay logic is inverted
 ```
 
 ## Requirements
