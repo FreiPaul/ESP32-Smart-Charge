@@ -22,7 +22,7 @@
 
 // Packet sizes
 #define SETTINGS_PACKET_SIZE 14
-#define STATUS_PACKET_SIZE 12
+#define STATUS_PACKET_SIZE 15
 
 // Command codes
 typedef enum {
@@ -45,7 +45,7 @@ typedef enum {
  */
 typedef struct {
     uint8_t version;
-    uint32_t current_time;          // Unix timestamp from phone
+    uint32_t current_time;  // Unix timestamp from phone
     uint8_t flags;
     uint32_t scheduled_start_time;  // Unix timestamp for start
     uint16_t voltage_threshold_mv;  // Millivolts
@@ -54,7 +54,7 @@ typedef struct {
 /**
  * Status structure (sent to app)
  *
- * BLE Packet format (12 bytes):
+ * BLE Packet format (15 bytes):
  * Byte 0:   Version (0x01)
  * Byte 1:   FSM state
  * Byte 2-3: Current voltage (millivolts, uint16 LE)
@@ -62,7 +62,7 @@ typedef struct {
  * Byte 8:   Relay state (0=off, 1=on)
  * Byte 9:   Threshold countdown (0-10 seconds, 0=inactive)
  * Byte 10:  Error code (0=none)
- * Byte 11:  Reserved
+ * Byte 11-14:  Scheduled start time (uint32 LE)
  */
 typedef struct {
     uint8_t version;
@@ -72,7 +72,7 @@ typedef struct {
     uint8_t relay_state;
     uint8_t threshold_countdown;
     uint8_t error_code;
-    uint8_t reserved;
+    uint32_t scheduled_start_time;  // Unix timestamp for start
 } charger_status_t;
 
 /**

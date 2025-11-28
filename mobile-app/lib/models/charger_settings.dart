@@ -102,6 +102,7 @@ class ChargerStatus {
   final bool relayOn;
   final int thresholdCountdown;
   final int errorCode;
+  final DateTime scheduledStartTime;
 
   ChargerStatus({
     required this.state,
@@ -110,6 +111,7 @@ class ChargerStatus {
     required this.relayOn,
     required this.thresholdCountdown,
     required this.errorCode,
+    required this.scheduledStartTime,
   });
 
   /// Voltage in volts
@@ -124,7 +126,9 @@ class ChargerStatus {
   /// Parse from BLE packet (12 bytes)
   factory ChargerStatus.fromBytes(List<int> data) {
     if (data.length < 12) {
-      throw ArgumentError('Invalid status data: expected 12 bytes, got ${data.length}');
+      throw ArgumentError(
+        'Invalid status data: expected 12 bytes, got ${data.length}',
+      );
     }
 
     final buffer = ByteData.view(Uint8List.fromList(data).buffer);
@@ -132,7 +136,9 @@ class ChargerStatus {
     // Verify version
     final version = buffer.getUint8(0);
     if (version != settingsVersion) {
-      throw ArgumentError('Invalid status version: expected $settingsVersion, got $version');
+      throw ArgumentError(
+        'Invalid status version: expected $settingsVersion, got $version',
+      );
     }
 
     return ChargerStatus(
@@ -144,6 +150,9 @@ class ChargerStatus {
       relayOn: buffer.getUint8(8) != 0,
       thresholdCountdown: buffer.getUint8(9),
       errorCode: buffer.getUint8(10),
+      scheduledStartTime: DateTime.fromMillisecondsSinceEpoch(
+        buffer.getUint32(11, Endian.little) * 1000,
+      ),
     );
   }
 
@@ -156,6 +165,7 @@ class ChargerStatus {
       relayOn: false,
       thresholdCountdown: 0,
       errorCode: 0,
+      scheduledStartTime: DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 }

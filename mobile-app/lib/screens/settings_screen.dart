@@ -58,7 +58,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final status = await widget.bleService.readStatus();
       if (mounted) {
-        setState(() => _status = status);
+        setState(() {
+          _status = status;
+          bool hasTimeSet =
+              status.scheduledStartTime.millisecondsSinceEpoch > 0;
+          _scheduledTime = hasTimeSet
+              ? TimeOfDay.fromDateTime(status.scheduledStartTime)
+              : null;
+          _voltageThresholdEnabled =
+              status.state == ChargerState.thresholdDelay.value;
+          _voltageThreshold = status.voltageV;
+        });
       }
     } catch (e) {
       // Ignore - will get status via notifications

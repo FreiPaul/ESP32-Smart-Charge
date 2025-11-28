@@ -26,8 +26,7 @@ static charger_error_t g_error = ERROR_NONE;
 
 // State name strings for logging
 static const char* state_names[] = {
-    "IDLE",   "SCHEDULED",       "CHARGING",
-    "DELAY",  "COMPLETE",        "ERROR",
+    "IDLE", "SCHEDULED", "CHARGING", "DELAY", "COMPLETE", "ERROR",
 };
 
 static void transition_to(charger_state_t new_state) {
@@ -141,8 +140,8 @@ void fsm_reconcile(void) {
             // Check if voltage threshold exceeded (if enabled)
             if ((g_settings.flags & FLAG_VOLTAGE_THRESHOLD_ENABLED) &&
                 voltage >= g_settings.voltage_threshold_mv) {
-                ESP_LOGI(TAG, "Voltage threshold reached: %umV >= %umV", voltage,
-                         g_settings.voltage_threshold_mv);
+                ESP_LOGI(TAG, "Voltage threshold reached: %umV >= %umV",
+                         voltage, g_settings.voltage_threshold_mv);
                 g_threshold_countdown = THRESHOLD_DELAY_SECONDS;
                 transition_to(CHARGER_STATE_THRESHOLD_DELAY);
             }
@@ -166,7 +165,8 @@ void fsm_reconcile(void) {
                     ESP_LOGI(TAG, "Charging complete, voltage stable at %umV",
                              voltage);
                     relay_set(false);
-                    g_settings.flags &= ~FLAG_SCHEDULE_ENABLED;  // Clear schedule
+                    g_settings.flags &=
+                        ~FLAG_SCHEDULE_ENABLED;  // Clear schedule
                     transition_to(CHARGER_STATE_COMPLETE);
                 }
             }
@@ -190,12 +190,10 @@ void fsm_get_status(charger_status_t* status) {
     status->relay_state = relay_get_state() ? 1 : 0;
     status->threshold_countdown = g_threshold_countdown;
     status->error_code = (uint8_t)g_error;
-    status->reserved = 0;
+    status->scheduled_start_time = g_settings.scheduled_start_time;
 }
 
-charger_state_t fsm_get_state(void) {
-    return g_state;
-}
+charger_state_t fsm_get_state(void) { return g_state; }
 
 // Settings parsing implementation
 bool settings_parse(const uint8_t* data, uint16_t len,
@@ -212,7 +210,8 @@ bool settings_parse(const uint8_t* data, uint16_t len,
         checksum ^= data[i];
     }
     if (checksum != data[SETTINGS_PACKET_SIZE - 1]) {
-        ESP_LOGW(TAG, "Settings checksum mismatch: calculated 0x%02x, got 0x%02x",
+        ESP_LOGW(TAG,
+                 "Settings checksum mismatch: calculated 0x%02x, got 0x%02x",
                  checksum, data[SETTINGS_PACKET_SIZE - 1]);
         return false;
     }
@@ -226,11 +225,11 @@ bool settings_parse(const uint8_t* data, uint16_t len,
 
     // Parse fields (little-endian)
     out->version = data[0];
-    out->current_time = data[1] | (data[2] << 8) | (data[3] << 16) |
-                        (data[4] << 24);
+    out->current_time =
+        data[1] | (data[2] << 8) | (data[3] << 16) | (data[4] << 24);
     out->flags = data[5];
-    out->scheduled_start_time = data[6] | (data[7] << 8) | (data[8] << 16) |
-                                (data[9] << 24);
+    out->scheduled_start_time =
+        data[6] | (data[7] << 8) | (data[8] << 16) | (data[9] << 24);
     out->voltage_threshold_mv = data[10] | (data[11] << 8);
 
     return true;
@@ -254,7 +253,9 @@ uint16_t status_serialize(const charger_status_t* status, uint8_t* out,
     out[8] = status->relay_state;
     out[9] = status->threshold_countdown;
     out[10] = status->error_code;
-    out[11] = status->reserved;
-
+    out[11] = status->scheduled_start_time & 0xFF;
+    out[12] = (status->scheduled_start_time >> 8) & 0xFF;
+    out[13] = (status->scheduled_start_time >> 16) & 0xFF;
+    out[14] = (status->scheduled_start_time >> 24) & 0xFF;
     return STATUS_PACKET_SIZE;
 }
