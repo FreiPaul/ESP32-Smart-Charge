@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 // Hardware configuration
-#define RELAY_GPIO 15
+#define RELAY_GPIO 2
 #define INVERT_RELAY_LOGIC 1  // Set to 1 if relay logic is inverted
 #define VOLTAGE_ADC_GPIO 0
 
