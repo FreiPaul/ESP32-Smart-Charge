@@ -22,7 +22,7 @@
 
 // Packet sizes
 #define SETTINGS_PACKET_SIZE 14
-#define STATUS_PACKET_SIZE 15
+#define STATUS_PACKET_SIZE 18
 
 // Command codes
 typedef enum {
@@ -54,7 +54,7 @@ typedef struct {
 /**
  * Status structure (sent to app)
  *
- * BLE Packet format (15 bytes):
+ * BLE Packet format (18 bytes):
  * Byte 0:   Version (0x01)
  * Byte 1:   FSM state
  * Byte 2-3: Current voltage (millivolts, uint16 LE)
@@ -62,7 +62,9 @@ typedef struct {
  * Byte 8:   Relay state (0=off, 1=on)
  * Byte 9:   Threshold countdown (0-10 seconds, 0=inactive)
  * Byte 10:  Error code (0=none)
- * Byte 11-14:  Scheduled start time (uint32 LE)
+ * Byte 11-14: Scheduled start time (uint32 LE)
+ * Byte 15-16: Voltage threshold (millivolts, uint16 LE)
+ * Byte 17:  Flags (bit0=threshold_enabled, bit1=schedule_enabled)
  */
 typedef struct {
     uint8_t version;
@@ -73,6 +75,8 @@ typedef struct {
     uint8_t threshold_countdown;
     uint8_t error_code;
     uint32_t scheduled_start_time;  // Unix timestamp for start
+    uint16_t voltage_threshold_mv;  // Millivolts
+    uint8_t flags;
 } charger_status_t;
 
 /**

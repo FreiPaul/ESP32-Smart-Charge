@@ -103,6 +103,8 @@ class ChargerStatus {
   final int thresholdCountdown;
   final int errorCode;
   final DateTime scheduledStartTime;
+  final int voltageThresholdMv;
+  final int flags;
 
   ChargerStatus({
     required this.state,
@@ -112,10 +114,21 @@ class ChargerStatus {
     required this.thresholdCountdown,
     required this.errorCode,
     required this.scheduledStartTime,
+    required this.voltageThresholdMv,
+    required this.flags,
   });
 
   /// Voltage in volts
   double get voltageV => voltageMv / 1000.0;
+
+  /// Voltage threshold in volts
+  double get voltageThresholdV => voltageThresholdMv / 1000.0;
+
+  /// Whether voltage threshold is enabled (flag bit 0)
+  bool get voltageThresholdEnabled => (flags & 0x01) != 0;
+
+  /// Whether schedule is enabled (flag bit 1)
+  bool get scheduleEnabled => (flags & 0x02) != 0;
 
   /// Whether time has been synchronized
   bool get timeIsSynced => deviceTime.millisecondsSinceEpoch > 0;
@@ -123,11 +136,11 @@ class ChargerStatus {
   /// Format voltage for display
   String get voltageDisplay => '${voltageV.toStringAsFixed(2)} V';
 
-  /// Parse from BLE packet (12 bytes)
+  /// Parse from BLE packet (18 bytes)
   factory ChargerStatus.fromBytes(List<int> data) {
-    if (data.length < 12) {
+    if (data.length < 18) {
       throw ArgumentError(
-        'Invalid status data: expected 12 bytes, got ${data.length}',
+        'Invalid status data: expected 18 bytes, got ${data.length}',
       );
     }
 
@@ -153,6 +166,8 @@ class ChargerStatus {
       scheduledStartTime: DateTime.fromMillisecondsSinceEpoch(
         buffer.getUint32(11, Endian.little) * 1000,
       ),
+      voltageThresholdMv: buffer.getUint16(15, Endian.little),
+      flags: buffer.getUint8(17),
     );
   }
 
@@ -166,6 +181,8 @@ class ChargerStatus {
       thresholdCountdown: 0,
       errorCode: 0,
       scheduledStartTime: DateTime.fromMillisecondsSinceEpoch(0),
+      voltageThresholdMv: 40500, // Default 40.5V
+      flags: 0,
     );
   }
 }

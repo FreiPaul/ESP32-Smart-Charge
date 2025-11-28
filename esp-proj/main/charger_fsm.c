@@ -191,6 +191,8 @@ void fsm_get_status(charger_status_t* status) {
     status->threshold_countdown = g_threshold_countdown;
     status->error_code = (uint8_t)g_error;
     status->scheduled_start_time = g_settings.scheduled_start_time;
+    status->voltage_threshold_mv = g_settings.voltage_threshold_mv;
+    status->flags = g_settings.flags;
 }
 
 charger_state_t fsm_get_state(void) { return g_state; }
@@ -257,5 +259,8 @@ uint16_t status_serialize(const charger_status_t* status, uint8_t* out,
     out[12] = (status->scheduled_start_time >> 8) & 0xFF;
     out[13] = (status->scheduled_start_time >> 16) & 0xFF;
     out[14] = (status->scheduled_start_time >> 24) & 0xFF;
+    out[15] = status->voltage_threshold_mv & 0xFF;
+    out[16] = (status->voltage_threshold_mv >> 8) & 0xFF;
+    out[17] = status->flags;
     return STATUS_PACKET_SIZE;
 }

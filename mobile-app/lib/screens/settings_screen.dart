@@ -65,9 +65,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _scheduledTime = hasTimeSet
               ? TimeOfDay.fromDateTime(status.scheduledStartTime)
               : null;
-          _voltageThresholdEnabled =
-              status.state == ChargerState.thresholdDelay.value;
-          _voltageThreshold = status.voltageV;
+          _voltageThresholdEnabled = status.voltageThresholdEnabled;
+          _voltageThreshold = status.voltageThresholdV == 0
+              ? 40.5
+              : status.voltageThresholdV;
         });
       }
     } catch (e) {
