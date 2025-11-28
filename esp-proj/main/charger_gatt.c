@@ -10,6 +10,7 @@
 
 #include "charger_fsm.h"
 #include "charger_settings.h"
+#include "driver/gpio.h"
 #include "esp_bt.h"
 #include "esp_bt_main.h"
 #include "esp_gap_ble_api.h"
@@ -29,9 +30,9 @@ static const uint8_t service_uuid[16] = {0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56,
                                          0x78, 0x56, 0x34, 0x12};
 
 // Settings Characteristic UUID: 12345678-1234-5678-1234-56789abcdef2
-static const uint8_t settings_char_uuid[16] = {0xf2, 0xde, 0xbc, 0x9a, 0x78, 0x56,
-                                               0x34, 0x12, 0x78, 0x56, 0x34, 0x12,
-                                               0x78, 0x56, 0x34, 0x12};
+static const uint8_t settings_char_uuid[16] = {
+    0xf2, 0xde, 0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12,
+    0x78, 0x56, 0x34, 0x12, 0x78, 0x56, 0x34, 0x12};
 
 // Status Characteristic UUID: 12345678-1234-5678-1234-56789abcdef3
 static const uint8_t status_char_uuid[16] = {0xf3, 0xde, 0xbc, 0x9a, 0x78, 0x56,
@@ -39,9 +40,9 @@ static const uint8_t status_char_uuid[16] = {0xf3, 0xde, 0xbc, 0x9a, 0x78, 0x56,
                                              0x78, 0x56, 0x34, 0x12};
 
 // Command Characteristic UUID: 12345678-1234-5678-1234-56789abcdef4
-static const uint8_t command_char_uuid[16] = {0xf4, 0xde, 0xbc, 0x9a, 0x78, 0x56,
-                                              0x34, 0x12, 0x78, 0x56, 0x34, 0x12,
-                                              0x78, 0x56, 0x34, 0x12};
+static const uint8_t command_char_uuid[16] = {
+    0xf4, 0xde, 0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12,
+    0x78, 0x56, 0x34, 0x12, 0x78, 0x56, 0x34, 0x12};
 
 // Standard UUIDs
 static const uint16_t primary_service_uuid = ESP_GATT_UUID_PRI_SERVICE;
@@ -83,14 +84,14 @@ static const esp_gatts_attr_db_t gatt_db[CHARGER_IDX_NB] = {
     // Service Declaration
     [IDX_SVC] = {{ESP_GATT_AUTO_RSP},
                  {ESP_UUID_LEN_16, (uint8_t*)&primary_service_uuid,
-                  ESP_GATT_PERM_READ, sizeof(service_uuid), sizeof(service_uuid),
-                  (uint8_t*)service_uuid}},
+                  ESP_GATT_PERM_READ, sizeof(service_uuid),
+                  sizeof(service_uuid), (uint8_t*)service_uuid}},
 
     // Settings Characteristic Declaration
     [IDX_SETTINGS_CHAR] = {{ESP_GATT_AUTO_RSP},
                            {ESP_UUID_LEN_16, (uint8_t*)&char_declare_uuid,
-                            ESP_GATT_PERM_READ, sizeof(uint8_t), sizeof(uint8_t),
-                            (uint8_t*)&char_prop_write}},
+                            ESP_GATT_PERM_READ, sizeof(uint8_t),
+                            sizeof(uint8_t), (uint8_t*)&char_prop_write}},
     // Settings Characteristic Value
     [IDX_SETTINGS_VAL] = {{ESP_GATT_RSP_BY_APP},  // Manual response for write
                           {ESP_UUID_LEN_128, (uint8_t*)settings_char_uuid,
@@ -153,16 +154,36 @@ static esp_ble_adv_params_t adv_params = {
 };
 
 static uint8_t raw_adv_data[] = {
-    0x02, ESP_BLE_AD_TYPE_FLAG, 0x06,
-    0x11, ESP_BLE_AD_TYPE_128SRV_CMPL,
-    0xf0, 0xde, 0xbc, 0x9a, 0x78, 0x56, 0x34, 0x12,
-    0x78, 0x56, 0x34, 0x12, 0x78, 0x56, 0x34, 0x12,
+    0x02,
+    ESP_BLE_AD_TYPE_FLAG,
+    0x06,
+    0x11,
+    ESP_BLE_AD_TYPE_128SRV_CMPL,
+    0xf0,
+    0xde,
+    0xbc,
+    0x9a,
+    0x78,
+    0x56,
+    0x34,
+    0x12,
+    0x78,
+    0x56,
+    0x34,
+    0x12,
+    0x78,
+    0x56,
+    0x34,
+    0x12,
 };
 
-static uint8_t raw_scan_rsp_data[] = {
-    0x0d, ESP_BLE_AD_TYPE_NAME_CMPL,
-    'E', 'S', 'P', '-', 'C', 'H', 'A', 'R', 'G', 'E', 'R'
-};
+static uint8_t raw_scan_rsp_data[] = {0x0d, ESP_BLE_AD_TYPE_NAME_CMPL,
+                                      'E',  'S',
+                                      'P',  '-',
+                                      'C',  'H',
+                                      'A',  'R',
+                                      'G',  'E',
+                                      'R'};
 
 // ============================================================================
 // GAP Event Handler
@@ -235,7 +256,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
                 memcpy(handle_table, param->add_attr_tab.handles,
                        sizeof(handle_table));
                 esp_ble_gatts_start_service(handle_table[IDX_SVC]);
-                ESP_LOGI(TAG, "Service created with %d handles", CHARGER_IDX_NB);
+                ESP_LOGI(TAG, "Service created with %d handles",
+                         CHARGER_IDX_NB);
             }
             break;
 
@@ -290,7 +312,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
             } else if (param->write.handle == handle_table[IDX_CMD_VAL]) {
                 // Process command
                 if (param->write.len >= 1) {
-                    fsm_process_command((charger_command_t)param->write.value[0]);
+                    fsm_process_command(
+                        (charger_command_t)param->write.value[0]);
                 }
 
                 if (param->write.need_rsp) {
@@ -303,7 +326,8 @@ static void gatts_event_handler(esp_gatts_cb_event_t event,
         }
 
         case ESP_GATTS_CONNECT_EVT:
-            ESP_LOGI(TAG, "Client connected: conn_id=%d", param->connect.conn_id);
+            ESP_LOGI(TAG, "Client connected: conn_id=%d",
+                     param->connect.conn_id);
             g_conn_id = param->connect.conn_id;
             g_is_connected = true;
 
@@ -381,6 +405,15 @@ void charger_gatt_init(void) {
 
     // Set MTU
     esp_ble_gatt_set_local_mtu(500);
+
+    // Configure GPIOs for RF switch and antenna selection
+    gpio_reset_pin(GPIO_NUM_3);
+    gpio_set_direction(GPIO_NUM_3, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_3, 0);  // RF switch ON
+
+    gpio_reset_pin(GPIO_NUM_14);
+    gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_14, 0);  // INTERNAL antenna
 
     ESP_LOGI(TAG, "GATT server initialized");
 }
