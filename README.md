@@ -2,6 +2,8 @@
 
 BLE-controlled charger with scheduled start time and optional automatic voltage-based shutoff.
 
+![App Screenshot](app.jpeg)
+
 ## Hardware
 
 - **Board**: Seeed Studio XIAO ESP32-C6
