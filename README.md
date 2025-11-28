@@ -1,38 +1,38 @@
-# ESP32-C6 BLE LED Controller
+# ESP32-C6 Smart Charger Controller
 
-A minimal demonstration of Bluetooth Low Energy communication between an ESP32-C6 microcontroller and an iOS app.
-
-## Overview
-
-This project demonstrates:
-
-- BLE GATT server implementation on ESP32-C6 using ESP-IDF (Bluedroid stack)
-- BLE client implementation in Flutter for iOS
-- Simple LED control over Bluetooth as demonatration usecase
+BLE-controlled charger with scheduled start time and optional automatic voltage-based shutoff.
 
 ## Hardware
 
 - **Board**: Seeed Studio XIAO ESP32-C6
-- **LED**: Internal LED
+- **Relay**: GPIO 2 (charger on/off)
+- **Voltage ADC**: GPIO 0 (with voltage divider)
 
-## BLE Service
+## Features
 
-| UUID                                   | Description                    |
-| -------------------------------------- | ------------------------------ |
-| `12345678-1234-5678-1234-56789abcdef0` | LED Control Service            |
-| `12345678-1234-5678-1234-56789abcdef1` | LED State Characteristic (R/W) |
+- Schedule charging start time from phone
+- Auto-stop at voltage threshold
+- Live status updates to phone while connected
+- Manual start/stop controls to overwrite schedule
 
-**LED State**: `0x00` = OFF, `0x01` = ON
+## BLE Protocol
+
+| UUID Suffix | Name     | Properties             |
+| ----------- | -------- | ---------------------- |
+| `...def0`   | Service  | -                      |
+| `...def2`   | Settings | Write (14 bytes)       |
+| `...def3`   | Status   | Read/Notify (12 bytes) |
+| `...def4`   | Command  | Write (1 byte)         |
+
+Device name: `ESP-CHARGER`
 
 ## Building
 
 ### ESP32 Firmware
 
 ```bash
-# activate the esp-idf, e.g.:
 . ~/esp/esp-idf/export.sh
 cd esp-proj
-idf.py set-target esp32c6
 idf.py build
 idf.py flash monitor
 ```
@@ -48,16 +48,16 @@ open ios/Runner.xcworkspace
 flutter run --release
 ```
 
-## Usage
+## Configuration
 
-1. Power on ESP32-C6 — it will start advertising as "ESP-LED-CTRL"
-2. Open the iOS app and tap "Scan for Devices"
-3. Select "ESP-LED-CTRL" from the list
-4. Use the toggle button to control the LED
+Adjust voltage divider ratio in `esp-proj/main/charger_hardware.h`:
+
+```c
+#define VOLTAGE_DIVIDER_RATIO 5.0f
+```
 
 ## Requirements
 
-- ESP-IDF v5.x or v6.x
+- ESP-IDF v6.x
 - Flutter 3.x
-- iOS 13.0+
-- Physical iOS device (BLE not available in simulator)
+- iOS 13.0+ (physical device)
