@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../services/ble_service.dart';
-import 'control_screen.dart';
+import 'settings_screen.dart';
 
 class PairingScreen extends StatefulWidget {
   const PairingScreen({super.key});
@@ -80,10 +80,10 @@ class _PairingScreenState extends State<PairingScreen> {
       if (!mounted) return;
       Navigator.of(context).pop(); // Close dialog
 
-      // Navigate to control screen
+      // Navigate to settings screen
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => ControlScreen(bleService: _bleService),
+          builder: (context) => SettingsScreen(bleService: _bleService),
         ),
       );
     } catch (e) {
@@ -102,7 +102,7 @@ class _PairingScreenState extends State<PairingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Find ESP Device'),
+        title: const Text('Find Charger'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Column(
