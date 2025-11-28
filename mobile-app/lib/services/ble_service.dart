@@ -38,8 +38,9 @@ class BleService {
 
   /// Start scanning for ESP-CHARGER devices
   Future<void> startScan({Duration timeout = const Duration(seconds: 10)}) async {
-    // Check if Bluetooth is on
-    final adapterState = await FlutterBluePlus.adapterState.first;
+    // Check if Bluetooth is on (skip unknown state on first access)
+    final adapterState = await FlutterBluePlus.adapterState
+        .firstWhere((state) => state != BluetoothAdapterState.unknown);
     if (adapterState != BluetoothAdapterState.on) {
       throw Exception('Bluetooth is not enabled. Please enable Bluetooth in Settings.');
     }
