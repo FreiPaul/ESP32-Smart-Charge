@@ -17,13 +17,21 @@ BLE-controlled charger with scheduled start time and optional automatic voltage-
 - Live status updates to phone while connected
 - Manual start/stop controls to overwrite schedule
 
+## Clients
+
+Two clients speak the same BLE protocol:
+
+- `mobile-app/` - Flutter app, installed on the phone.
+- `web-app/` - browser app, no install. Needs Web Bluetooth, which on iOS means
+  a browser such as Bluefy. See `web-app/README.md`.
+
 ## BLE Protocol
 
 | UUID Suffix | Name     | Properties             |
 | ----------- | -------- | ---------------------- |
 | `...def0`   | Service  | -                      |
 | `...def2`   | Settings | Write (14 bytes)       |
-| `...def3`   | Status   | Read/Notify (12 bytes) |
+| `...def3`   | Status   | Read/Notify (18 bytes) |
 | `...def4`   | Command  | Write (1 byte)         |
 
 Device name: `ESP-CHARGER`
@@ -50,6 +58,17 @@ open ios/Runner.xcworkspace
 flutter run --release
 ```
 
+### Web App
+
+```bash
+cd web-app
+npm ci
+npm run dev     # dev server
+npm test        # unit tests
+npm run e2e     # end-to-end suite against a simulated charger
+npm run build   # dist/index.html, self-contained
+```
+
 ## Configuration
 
 Adjust hardware config according to your circuit in `esp-proj/main/charger_hardware.h`:
@@ -65,3 +84,4 @@ Adjust hardware config according to your circuit in `esp-proj/main/charger_hardw
 - ESP-IDF v6.x
 - Flutter 3.x
 - iOS 13.0+ (physical device)
+- Node 22 and a Web Bluetooth browser for the web app

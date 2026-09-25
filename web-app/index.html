@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>Smart Charger</title>
+  </head>
+  <body>
+    <header class="app-bar">
+      <h1 id="app-title">Find Charger</h1>
+      <button id="disconnect" class="icon-button" type="button" hidden aria-label="Disconnect">
+        &#x2715;
+      </button>
+    </header>
+
+    <main>
+      <section id="pairing">
+        <div class="card">
+          <p class="lead">Connect to your ESP-CHARGER over Bluetooth.</p>
+          <p class="hint" id="pairing-hint">
+            This page needs Web Bluetooth. On iOS, open it in Bluefy; on desktop, use Chrome or
+            Edge.
+          </p>
+          <button id="connect" class="primary-button" type="button">Connect Charger</button>
+        </div>
+        <div id="pairing-error" class="card error" hidden></div>
+      </section>
+
+      <section id="settings" hidden>
+        <div class="card status-card">
+          <div class="status-row">
+            <span id="status-icon" class="status-icon" aria-hidden="true">⏻</span>
+            <div class="status-text">
+              <span id="status-state" class="status-state">Idle</span>
+              <span id="status-relay" class="status-relay">Relay OFF</span>
+            </div>
+            <span id="status-voltage" class="voltage-pill">0.00 V</span>
+          </div>
+          <div id="countdown" hidden>
+            <progress id="countdown-bar" max="10" value="0"></progress>
+            <p id="countdown-label" class="countdown-label"></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Scheduled Start Time</h2>
+          <div class="schedule-row">
+            <input id="schedule-time" type="time" aria-label="Scheduled start time" />
+            <button id="schedule-clear" class="icon-button" type="button" aria-label="Clear schedule" hidden>
+              &#x2715;
+            </button>
+          </div>
+          <p id="schedule-hint" class="hint" hidden></p>
+        </div>
+
+        <div class="card">
+          <div class="threshold-header">
+            <h2>Voltage Threshold</h2>
+            <label class="switch">
+              <input id="threshold-enabled" type="checkbox" aria-label="Voltage threshold enabled" />
+              <span class="slider-track" aria-hidden="true"></span>
+            </label>
+          </div>
+          <p class="hint">Auto-stop charging when voltage reaches threshold</p>
+          <div id="threshold-controls" class="threshold-row" hidden>
+            <input id="threshold-value" type="range" min="36" max="42" step="0.1" aria-label="Voltage threshold" />
+            <span id="threshold-label" class="threshold-label">40.5 V</span>
+          </div>
+        </div>
+
+        <button id="upload" class="primary-button" type="button">Upload Settings</button>
+
+        <div class="card manual-card">
+          <h2 class="small-heading">Manual Control</h2>
+          <div class="manual-row">
+            <button id="force-start" class="outline-button start" type="button">Start Now</button>
+            <button id="force-stop" class="outline-button stop" type="button">Stop</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" hidden></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
