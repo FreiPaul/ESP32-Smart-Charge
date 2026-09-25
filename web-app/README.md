@@ -15,6 +15,23 @@ from any static host.
 
 [bluefy]: https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055
 
+## Serving it with Docker
+
+```bash
+docker compose up --build   # http://localhost:8080
+```
+
+The image builds the app and serves `dist/` with nginx. Reaching the container
+over a LAN address does not work: the browser drops Web Bluetooth outside a
+secure context, so the container belongs behind a TLS terminator, or on
+`localhost`.
+
+To check a running container instead of a local build:
+
+```bash
+E2E_BASE_URL=http://127.0.0.1:8080 npm run e2e
+```
+
 ## Differences from the Flutter app
 
 Web Bluetooth has no scan API. The browser shows its own device chooser
@@ -47,6 +64,7 @@ npm run build
 | `src/client.ts`         | Protocol semantics on top of a transport                  |
 | `src/app.ts`            | UI wiring                                                 |
 | `e2e/fake-charger.ts`   | Web Bluetooth stand-in that mirrors the firmware FSM      |
+| `Dockerfile`            | Builds the app and serves `dist/` with nginx              |
 
 The E2E suite installs `e2e/fake-charger.ts` in place of `navigator.bluetooth`
 and runs the whole app against it, including the real transport, so schedules,

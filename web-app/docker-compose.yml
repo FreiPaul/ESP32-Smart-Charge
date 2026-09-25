@@ -1,0 +1,9 @@
+services:
+  web-app:
+    build: .
+    ports:
+      # Web Bluetooth needs a secure context, so this port is only useful
+      # through localhost or behind a TLS terminator, not on a plain LAN
+      # address. See README.md.
+      - "8080:80"
+    restart: unless-stopped
